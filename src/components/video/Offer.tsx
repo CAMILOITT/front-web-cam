@@ -5,7 +5,7 @@ import { socket } from '../../api/sockets/create'
 interface IProps {}
 
 export default function Offer({}: IProps) {
-  const [credential, setCredential] =
+  // const [credential, setCredential] =
     useState<RTCSessionDescriptionInit | null>(null)
   const [connection, setConnection] = useState<RTCPeerConnection | null>(null)
   const videoOffer = useRef<HTMLVideoElement | null>(null)
@@ -32,7 +32,7 @@ export default function Offer({}: IProps) {
         const offer = peerConnection.localDescription
         if (!offer) return
         socket.emit('offer', offer)
-        setCredential(offer)
+        // setCredential(offer)
       })
       .catch(err => console.error(err))
 
@@ -78,7 +78,7 @@ export default function Offer({}: IProps) {
       .then(() => {
         const offer = peerConnection.localDescription
         if (!offer) return
-        setCredential(offer)
+        // setCredential(offer)
       })
       .catch(err => console.error(err))
 

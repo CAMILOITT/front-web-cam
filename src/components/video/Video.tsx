@@ -7,7 +7,7 @@ interface IProps {
 export default function Video({ statusCall }: IProps) {
   const [credential, setCredential] =
     useState<RTCSessionDescriptionInit | null>(null)
-  const [videoCall, setVideoCall] = useState('')
+  // const [videoCall, setVideoCall] = useState('')
   const [connection, setConnection] = useState<RTCPeerConnection | null>(null)
 
   function handleCalled() {
@@ -57,7 +57,7 @@ export default function Video({ statusCall }: IProps) {
 
   return (
     <div>
-      <video src={videoCall} autoPlay></video>
+      {/* <video src={videoCall} autoPlay></video> */}
       <div>
         <button onClick={handleCalled}>caller</button>
         <button>video</button>

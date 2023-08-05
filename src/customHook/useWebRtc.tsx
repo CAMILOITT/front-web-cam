@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { configurationConnection } from '../const/webRtc'
 
 interface Props {}
 
 export function useWebRtc({}: Props) {
-  const [connect, setConnect] = useState<RTCPeerConnection | null>(null)
+  // const [connect, setConnect] = useState<RTCPeerConnection | null>(null)
   useEffect(() => {
     const peerConnection = new RTCPeerConnection(configurationConnection)
     navigator.mediaDevices

@@ -5,13 +5,13 @@ import { configurationConnection } from '../../const/webRtc'
 interface Props {}
 
 export default function Answer({}: Props) {
-  const [credential, setCredential] =
+  // const [credential, setCredential] =
     useState<RTCSessionDescriptionInit | null>(null)
 
   const [connection, setConnection] = useState<RTCPeerConnection | null>(null)
 
  const videoOffer = useRef<HTMLVideoElement | null>(null)
- const videoAnswer = useRef<HTMLVideoElement | null>(null)
+//  const videoAnswer = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
     const peerConnection = new RTCPeerConnection(configurationConnection)
@@ -54,7 +54,7 @@ export default function Answer({}: Props) {
 
         console.log(offer)
         console.log('offer', offer?.sdp)
-        setCredential(offer)
+        // setCredential(offer)
       })
       .catch(err => console.error(err))
 
@@ -88,7 +88,7 @@ export default function Answer({}: Props) {
         // if (!answer) return
         console.log('nueva local description')
         connection.setLocalDescription(answer)
-        setCredential(answer)
+        // setCredential(answer)
       })
       .catch(err => console.error(err))
 
