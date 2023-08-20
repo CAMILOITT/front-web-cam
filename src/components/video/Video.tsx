@@ -1,13 +1,14 @@
-import { forwardRef, useState } from 'react'
+import { forwardRef } from 'react'
 import css from './Video.module.css'
+import { statusVideo } from '../../types/video/type'
 
 interface VideoProps {
-  typeConnection: 'local' | 'remote'
+  typeConnection: statusVideo
   userName: string
   listAttributes?: { autoPlay?: boolean; muted?: boolean; controls?: boolean }
   hiddenVideo?: boolean
-  focusVideo?: 'local' | 'remote'
-  setFocusVideo?: React.Dispatch<React.SetStateAction<'local' | 'remote'>>
+  focusVideo?: statusVideo
+  setFocusVideo?: React.Dispatch<React.SetStateAction<statusVideo>>
 }
 
 export const Video = forwardRef<HTMLVideoElement, VideoProps>(

@@ -6,6 +6,7 @@ import Messages from '../../components/messages/Messages'
 import { Video } from '../../components/video/Video'
 import Connection from '../../api/webRtc/peer'
 import css from './Room.module.css'
+import { statusVideo } from '../../types/video/type'
 interface IProps {}
 
 const constrains = {
@@ -26,7 +27,7 @@ export default function Room({}: IProps) {
   const [videoHidden, setVideoHidden] = useState(false)
   const [audio, setAudio] = useState(false)
   const [idRoom] = useState(localStorage.getItem('idRoom'))
-  const [focusVideo, setFocusVideo] = useState<'local' | 'remote'>('local')
+  const [focusVideo, setFocusVideo] = useState<statusVideo>('local')
 
   useEffect(() => {
     peerConnection.openPeer()
