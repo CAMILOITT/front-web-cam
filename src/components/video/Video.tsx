@@ -6,40 +6,45 @@ interface VideoProps {
   userName: string
   listAttributes?: { autoPlay?: boolean; muted?: boolean; controls?: boolean }
   hiddenVideo?: boolean
+  focusVideo?: 'local' | 'remote'
+  setFocusVideo?: React.Dispatch<React.SetStateAction<'local' | 'remote'>>
 }
 
 export const Video = forwardRef<HTMLVideoElement, VideoProps>(
   (
-    { userName, typeConnection, listAttributes, hiddenVideo }: VideoProps,
+    {
+      userName,
+      typeConnection,
+      listAttributes,
+      hiddenVideo,
+      focusVideo,
+      setFocusVideo,
+    }: VideoProps,
     ref
   ) => {
-    const [callFocus, setCallFocus] = useState<'local' | 'remote'>('local')
-
-    function changeCallFocus(e: React.MouseEvent<HTMLDivElement>) {
-      console.log('click')
-      const focus = e.currentTarget.dataset.callId
-      if (focus === 'remote') {
-        setCallFocus('local')
-      } else {
-        setCallFocus('remote')
-      }
+    function changeCallFocus() {
+      if (!setFocusVideo || !focusVideo) return
+      setFocusVideo(prev => (prev === 'local' ? 'remote' : 'local'))
     }
 
     return (
       <div
         className={`${css.call} ${
-          callFocus === typeConnection ? css.callFocus : css.callNotFocus
+          typeConnection === focusVideo ? css.callFocus : css.callNotFocus
         }`}
-        data-call-id="remote"
         onDoubleClick={changeCallFocus}
       >
+        <div className={css.img} ></div>
         <video
           ref={ref}
           className={css.video}
           {...listAttributes}
           style={hiddenVideo ? { display: 'none' } : undefined}
         ></video>
-        <p className={css.name}> {userName}</p>
+        <p className={`${css.name} ${hiddenVideo ? css.nameCenter : ''} `}>
+          {' '}
+          {userName}
+        </p>
       </div>
     )
   }
