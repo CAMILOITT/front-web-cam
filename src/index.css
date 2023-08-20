@@ -4,14 +4,23 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  color: var(--colorNeutral);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --bg: #0a0118;
+  --bgComponents: #734aff;
+  --bgComponentsAnalogy: #18033a;
+  --colorNeutral: #ffffffde;
+  --colorPlaceholder: #ffffff99;
+  --colorHighlight: #ffe311;
+  --colorError: #db4723;
+  --colorSuccess: #98e51b;
+  --colorInfo: #015587;
 }
 
 * {
@@ -20,11 +29,14 @@
   box-sizing: border-box;
 }
 
-button {
+button,
+input {
+  outline: none;
   border: none;
+  font-size: unset;
 }
 
 input {
-  outline: none;
-  /* width: 100lh; */
+  padding: 5px 10px;
+  border-radius: 5px;
 }

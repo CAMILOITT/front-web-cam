@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { socket } from '../../api/sockets/create'
-import { configurationConnection } from '../../const/webRtc'
-
+import ControlsCall from '../../components/controlsCall/ControlsCall'
+import Messages from '../../components/messages/Messages'
+import { Video } from '../../components/video/Video'
+import Connection from '../../api/webRtc/peer'
+import css from './Room.module.css'
 interface IProps {}
 
 const constrains = {
@@ -9,159 +13,188 @@ const constrains = {
   video: true,
 }
 
+const peerConnection = new Connection()
+
 export default function Room({}: IProps) {
-  const [user, setUser] = useState()
-
-  const [peer, setPeer] = useState<RTCPeerConnection>()
-
-  // const peer = useRef(new RTCPeerConnection(configurationConnection))
-
-  // const idRoom = useRef(localStorage.getItem('idRoom'))
-
+  const navigate = useNavigate()
   const VideoLocal = useRef<HTMLVideoElement | null>(null)
   const VideoRemote = useRef<HTMLVideoElement | null>(null)
+  const [message, setMessage] = useState('')
+  const [hiddenMessage, setHiddenMessage] = useState(true)
+  const [nameRemote, setNameRemote] = useState<null | string>(null)
+  const [nameLocal] = useState(sessionStorage.getItem('userLocal'))
+  const [videoHidden, setVideoHidden] = useState(false)
+  const [audio, setAudio] = useState(false)
+  const [idRoom] = useState(localStorage.getItem('idRoom'))
 
-  const [localStream, setLocalStream] = useState<MediaStream>()
-
-  // el usuario se conecta al room
   useEffect(() => {
-    socket.on('userJoin', userCall => {
-      setUser(userCall)
-    })
-  }, [])
-
-  // conectando cámara y micrófono
-  useEffect(() => {
-    setPeer(new RTCPeerConnection(configurationConnection))
+    peerConnection.openPeer()
     navigator.mediaDevices
       .getUserMedia(constrains)
       .then(stream => {
-        // si no funciona agregar el stream en un useState en la linea donde el pc1 recibe la respuesta de la conexión peer y le agrega al la descriptionLocal()
         if (!VideoLocal.current) return
         VideoLocal.current.srcObject = stream
-        setLocalStream(stream)
+        peerConnection.addTrack(stream)
       })
       .catch(err => {
         console.error(err)
       })
-  }, [])
 
-  // inicia la reunion
-  function initRoom() {
-    if (!peer) return
-    peer
-      .createOffer()
-      .then(offer => {
-        peer.setLocalDescription(offer).catch(err => {
-          console.error(err)
-        })
-        socket.emit('offer', localStorage.getItem('idRoom'), offer)
-      })
-      .catch(err => {
-        console.error(err)
-      })
-  }
-
-  useEffect(() => {
     socket.on('offer', offer => {
-      if (!peer) return
-      peer.setRemoteDescription(offer).catch(err => {
-        console.error(err)
-      })
-
-      // navigator.mediaDevices
-      //   .getUserMedia(constrains)
-      //   .then(stream => {
-      //     if (!VideoAns.current) return
-      //     VideoAns.current.srcObject = stream
-      //   })
-      //   .catch(err => {
-      //     console.log(err)
-      //   })
-
-      // eslint-disable-next-line no-debugger
-      // debugger
-
-      peer
-        .createAnswer()
-        .then(answer => {
-          if (!peer) return
-
-          peer.setLocalDescription(answer)
-          // .catch(err => console.error(err))
-
-          socket.emit('answer', localStorage.getItem('idRoom'), answer)
-        })
-        .catch(err => {
-          console.error(err)
-        })
+      peerConnection.createRemoteOfferAndAnswer(offer)
     })
 
     socket.on('answer', answer => {
-      if (!peer) return
-      peer.setRemoteDescription(answer).catch(err => {
-        console.error(err)
-      })
+      peerConnection.createLocalAnswer(answer)
+      // código para ejecutar de nuevo el peer
+      if (!peerConnection.getReceivers().length) return
+      if (
+        peerConnection.getReceivers()[1].track.muted === true &&
+        peerConnection.getReceivers()[1].track.enabled === true
+      ) {
+        peerConnection.createLocalOffer()
+      }
     })
-  }, [peer])
 
-  useEffect(() => {
-    if (!peer || !localStream) return
-    localStream.getTracks().forEach(track => {
-      peer.addTrack(track, localStream)
-      console.log(track)
+    socket.on('sendCandidate', candidate => {
+      peerConnection.addCandidate(candidate)
     })
-  }, [peer, localStream])
 
-  // obtiene el sonido del usuario
-  useEffect(() => {
-    if (!peer) return
-    // peer.addEventListener('track', ev => {
-    //   console.log(ev)
-    //   console.log(ev.streams)
-    //   // a;adir el parámetro a un useState() trackRemote
-    //   if (!VideoRemote.current) return
-    //   VideoRemote.current.srcObject = ev.streams[0]
-    // })
-
-    peer.ontrack = ev => {
-      console.log(ev)
-      console.log(ev.streams)
-      // a;adir el parámetro a un useState() trackRemote
-      if (!VideoRemote.current) return
-      VideoRemote.current.srcObject = ev.streams[0]
+    peerConnection.searchCandidates()
+    peerConnection.searchErrorCandidate()
+    peerConnection.connectionstatechange(
+      setMessage,
+      setHiddenMessage,
+      setNameRemote
+    )
+    return () => {
+      socket.off('offer')
+      socket.off('answer')
+      socket.off('sendCandidate')
     }
-  }, [peer])
+  }, [])
+
+  useEffect(() => {
+    socket.on('userJoin', (userRemote: string) => {
+      setNameRemote(userRemote)
+      socket.emit('infoRoom', idRoom, nameLocal)
+      initRoom()
+    })
+
+    socket.on('infoRoom', (userRemote: string) => {
+      setNameRemote(userRemote)
+    })
+
+    socket.on('video', () => {
+      setVideoHidden(prev => !prev)
+    })
+    socket.on('audio', () => {
+      setAudio(prev => !prev)
+    })
+
+    return () => {
+      socket.off('userJoin')
+      socket.off('infoRoom')
+      socket.off('video')
+      socket.off('audio')
+    }
+  }, [nameLocal, idRoom])
+
+  useEffect(() => {
+    peerConnection.onTrack(VideoRemote)
+  }, [])
+
+  function initRoom() {
+    peerConnection.createLocalOffer()
+    setMessage('usuario conectado')
+    setHiddenMessage(false)
+    setTimeout(() => {
+      setHiddenMessage(true)
+    }, 3000)
+  }
+
+  function closeCall() {
+    peerConnection.closePeer()
+    navigate('/')
+    localStorage.removeItem('idRoom')
+    sessionStorage.removeItem('userLocal')
+    sessionStorage.removeItem('userRemote')
+  }
+
+  function copyIdRoom() {
+    if (!idRoom) return
+    navigator.clipboard.writeText(idRoom)
+    setMessage('id de la llamada copiado')
+    setHiddenMessage(false)
+    setTimeout(() => {
+      setHiddenMessage(true)
+    }, 3000)
+  }
+
+  function videoOff() {
+    console.log(peerConnection.getReceivers())
+    navigator.permissions
+      .query({ name: 'camera' as PermissionName })
+      .then(({ state }) => {
+        state === 'granted' && socket.emit('video', idRoom, !videoHidden)
+      })
+  }
+
+  function microphoneOff() {
+    navigator.permissions
+      .query({ name: 'microphone' as PermissionName })
+      .then(({ state }) => {
+        state === 'granted' && socket.emit('audio', idRoom, !audio)
+      })
+  }
+
+  function audioOff() {
+    if (!VideoRemote.current) return
+    const { muted } = VideoRemote.current
+    muted === false
+      ? (VideoRemote.current.muted = true)
+      : (VideoRemote.current.muted = false)
+  }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '1em',
-      }}
-    >
-      <h1>Room</h1>
-      <h2>{!user ? 'No hay Usuarios' : 'Hay Usuarios'}</h2>
-      <p>{user}</p>
-      <button onClick={() => console.info(peer)}>estado del peer</button>
-      {<button onClick={initRoom}>Iniciar Reunion</button>}
-      {/* <button onClick={initRoom}>iniciar reunion</button> */}
-      <video
-        ref={VideoLocal}
-        style={{ width: '400px' }}
-        controls
-        muted
-        autoPlay
-      ></video>
-      <video
-        ref={VideoRemote}
-        style={{ width: '400px' }}
-        controls
-        muted
-        autoPlay
-      ></video>
-    </div>
+    <main className={css.room}>
+      <Messages
+        hiddenMessage={hiddenMessage}
+        type={'success'}
+        message={message}
+      />
+      <div>
+        <Video
+          ref={VideoLocal}
+          userName={`${nameLocal}`}
+          typeConnection="local"
+          listAttributes={{ muted: true, autoPlay: true }}
+        />
+        {nameRemote && (
+          <Video
+            ref={VideoRemote}
+            userName={`${nameRemote}`}
+            typeConnection="remote"
+            listAttributes={{ autoPlay: true, muted: audio }}
+            hiddenVideo={videoHidden}
+          />
+        )}
+      </div>
+      {!nameRemote && (
+        <div className={css.messageLink}>
+          <p>
+            La reunion esta lista comparte el código de la sala con las personas
+            que quieras que asistan.
+          </p>
+          <button onClick={copyIdRoom}>copiar código de sala</button>
+        </div>
+      )}
+      <ControlsCall
+        closeCall={closeCall}
+        videoOff={videoOff}
+        audioOff={audioOff}
+        microphoneOff={microphoneOff}
+      />
+    </main>
   )
 }
